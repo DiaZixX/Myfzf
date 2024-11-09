@@ -12,6 +12,8 @@
 #define ERASE_COST 1
 #define INSERTION_COST 1
 
+#define MAX_CHOICES 15
+
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 
 /**
@@ -32,5 +34,12 @@ void swap_tab(int **tab1, int **tab2);
  * @return The distance between the two sequences
  */
 int levenshtein_distance(char *seq_X, int n, char *seq_Y, int m);
+
+/**
+ * @brief Recursively go through all the sub-dir
+ *
+ * @param path The path of the tree's root
+ */
+void list_content(const char *path);
 
 #endif // !MY_FZF_H
