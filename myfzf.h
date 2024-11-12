@@ -17,6 +17,17 @@
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 
 /**
+ * @class OrderedChoices
+ * @brief Structure to implement an array ordered by score for the choices we
+ * have
+ *
+ */
+typedef struct OrderedChoices {
+    int score;
+    char *name;
+} OrdChoice;
+
+/**
  * @brief Swap the start pointer of the 2 tabs
  *
  * @param tab1 Start pointer of the first tab
