@@ -1,11 +1,17 @@
 #include "myfzf.h"
 #include <ncurses.h>
 
+char *targetFile;
+int nChoices = 0;
+OrdChoice choices[MAX_CHOICES]; // Garde les différents choix qu'on trouve
+
 void swap_tab(int **tab1, int **tab2) {
     int *buffer = *tab1;
     *tab1 = *tab2;
     *tab2 = buffer;
 }
+
+void insert_choice(int score, char *name) { return; }
 
 int levenshtein_distance(char *seq_X, int n, char *seq_Y, int m) {
     int *previous_row = (int *)calloc(m + 1, sizeof(int));
@@ -61,7 +67,12 @@ void list_content(const char *path) {
             if (S_ISDIR(infos.st_mode)) {
                 list_content(complete_path);
             } else if (S_ISREG(infos.st_mode)) {
-                printf("File : %s\n", complete_path);
+                int score =
+                    levenshtein_distance(targetFile, strlen(targetFile),
+                                         entry->d_name, strlen(entry->d_name));
+                if (score <= ACCEPT_SCORE) {
+                    insert_choice(score, complete_path);
+                }
             } else {
                 perror("Not a directory or a file");
                 exit(EXIT_FAILURE);
@@ -77,40 +88,34 @@ void selector(int *selections, int idx) {
         selections[i] = (i == idx) ? 1 : 0;
 }
 
-void print_menu(WINDOW *menu_win, int highlight, int selections[],
-                char *choices[], int n_choices) {
+void print_menu(WINDOW *menuWin, int highlight, int selections[]) {
     int x, y, i;
     x = 2;
     y = 2;
-    box(menu_win, 0, 0);
-    for (i = 0; i < n_choices; ++i) {
+    box(menuWin, 0, 0);
+    for (i = 0; i < nChoices; ++i) {
         if (highlight == i + 1)
-            wattron(menu_win,
+            wattron(menuWin,
                     A_REVERSE); // Inverse la couleur pour l'élément sélectionné
         if (selections[i])
-            mvwprintw(menu_win, y, x, "[X] %s",
-                      choices[i]); // Indique que l'élément est sélectionné
+            mvwprintw(menuWin, y, x, "[X] %s",
+                      choices[i].name); // Indique que l'élément est sélectionné
         else
-            mvwprintw(menu_win, y, x, "[ ] %s", choices[i]);
-        wattroff(menu_win, A_REVERSE);
+            mvwprintw(menuWin, y, x, "[ ] %s", choices[i].name);
+        wattroff(menuWin, A_REVERSE);
         y++;
     }
-    wrefresh(menu_win);
+    wrefresh(menuWin);
 }
 
-int main() {
-    WINDOW *menu_win;
+void renderer() {
+    WINDOW *menuWin;
     int highlight = 1;
-    int choice = 0;
-    int c;
+    bool userSelected = false;
+    int keyInput;
     int selections[MAX_CHOICES] = {0}; // Garde la trace des sélections
-
-    char *choices[] = {
-        "Option", "Option", "Option", "Option", "Option",
-        "Option", "Option", "Option", "Option", "Option",
-        "Option", "Option", "Option", "Option", "Option",
-    };
-    int n_choices = sizeof(choices) / sizeof(char *);
+    int startx = 0;
+    int starty = 0;
 
     initscr();
     clear();
@@ -118,27 +123,26 @@ int main() {
     cbreak();    // Désactiver le buffering pour une réponse instantanée
     curs_set(0); // Masquer le curseur
 
-    int startx = 0;
-    int starty = 0;
-    menu_win = newwin(40, 80, starty, startx);
-    keypad(menu_win, TRUE);
+    menuWin = newwin(40, 80, starty, startx);
+    keypad(menuWin, TRUE);
     mvprintw(0, 81,
-             "Utilisez les fleches pour naviguer, ESPACE pour selectionner, "
-             "ENTREE pour valider.");
+             "Use ARROWS to navigate, Use SPACE to select,"
+             "Use ENTER to confirm");
     refresh();
-    print_menu(menu_win, highlight, selections, choices, n_choices);
+    print_menu(menuWin, highlight, selections);
 
+    // Navigation in the menu
     while (1) {
-        c = wgetch(menu_win);
-        switch (c) {
+        keyInput = wgetch(menuWin);
+        switch (keyInput) {
         case KEY_UP:
             if (highlight == 1)
-                highlight = n_choices;
+                highlight = nChoices;
             else
                 --highlight;
             break;
         case KEY_DOWN:
-            if (highlight == n_choices)
+            if (highlight == nChoices)
                 highlight = 1;
             else
                 ++highlight;
@@ -147,28 +151,30 @@ int main() {
             selector(selections, highlight - 1);
             break;
         case 10: // Touche ENTREE
-            choice = 1;
+            userSelected = true;
             break;
         default:
             break;
         }
-        print_menu(menu_win, highlight, selections, choices, n_choices);
-        if (choice == 1) // Si l'utilisateur a appuyé sur ENTREE
+        print_menu(menuWin, highlight, selections);
+        if (userSelected) // Si l'utilisateur a appuyé sur ENTREE
             break;
     }
 
     // Afficher les sélections
     clear();
     mvprintw(0, 0, "Vous avez sélectionné :");
-    for (int i = 0; i < n_choices; i++) {
+    for (int i = 0; i < nChoices; i++) {
         if (selections[i])
-            mvprintw(i + 1, 0, "%s", choices[i]);
+            mvprintw(i + 1, 0, "%s", choices[i].name);
     }
     refresh();
     getch();
 
     endwin();
+}
 
-    printf("%d\n", n_choices);
+int main(int argc, char *argv[]) {
+    renderer();
     return 0;
 }

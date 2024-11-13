@@ -4,13 +4,19 @@
 
 #include <dirent.h>
 #include <ncurses.h>
+#include <pthread.h>
+#include <signal.h>
+#include <stdbool.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
 
 #define MAX_LENGTH_PATH 1024
 #define SUBSITUTION_COST 3
 #define ERASE_COST 1
 #define INSERTION_COST 1
+
+#define ACCEPT_SCORE 15
 
 #define MAX_CHOICES 15
 
@@ -24,7 +30,7 @@
  */
 typedef struct OrderedChoices {
     int score;
-    char *name;
+    char name[MAX_LENGTH_PATH];
 } OrdChoice;
 
 /**
