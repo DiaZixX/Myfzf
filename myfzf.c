@@ -1,5 +1,5 @@
 #include "myfzf.h"
-#include <ncurses.h>
+#include <pthread.h>
 
 char *targetFile;
 int nChoices = 0;
@@ -12,6 +12,20 @@ void swap_tab(int **tab1, int **tab2) {
 }
 
 void insert_choice(int score, char *name) { return; }
+
+void *start_explore(void *arg) {
+    const char *initPath = (char *)arg;
+
+    list_content(initPath);
+
+    pthread_exit(EXIT_SUCCESS);
+}
+
+void *start_renderer(void *arg) {
+    renderer();
+
+    pthread_exit(EXIT_SUCCESS);
+}
 
 int levenshtein_distance(char *seq_X, int n, char *seq_Y, int m) {
     int *previous_row = (int *)calloc(m + 1, sizeof(int));
@@ -175,6 +189,21 @@ void renderer() {
 }
 
 int main(int argc, char *argv[]) {
-    renderer();
-    return 0;
+    pthread_t thread_explore;
+    pthread_t thread_renderer;
+    char *arg;
+
+    if (argc != 3) {
+        perror("Nombre d'arguments invalide. Format : ./myfzf <root_dir> "
+               "<filename>");
+        return EXIT_FAILURE;
+    }
+
+    targetFile = argv[1];
+    arg = argv[2];
+
+    pthread_create(&thread_explore, NULL, start_explore, (void *)arg);
+    pthread_create(&thread_renderer, NULL, start_renderer, NULL);
+
+    return EXIT_SUCCESS;
 }

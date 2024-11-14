@@ -59,4 +59,9 @@ int levenshtein_distance(char *seq_X, int n, char *seq_Y, int m);
  */
 void list_content(const char *path);
 
+/**
+ * @brief Manage the selector in the terminal
+ */
+void renderer();
+
 #endif // !MY_FZF_H
