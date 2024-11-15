@@ -22,46 +22,23 @@
 
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 
-/**
- * @class OrderedChoices
- * @brief Structure to implement an array ordered by score for the choices we
- * have
- *
- */
 typedef struct OrderedChoices {
     int score;
     char name[MAX_LENGTH_PATH];
 } OrdChoice;
 
-/**
- * @brief Swap the start pointer of the 2 tabs
- *
- * @param tab1 Start pointer of the first tab
- * @param tab2 Start pointer of the second tab
- */
 void swap_tab(int **tab1, int **tab2);
+void init_choices();
+void insert_choice(int score, char *name);
 
-/**
- * @brief Process the levenshtein's distance with constants defined in header
- *
- * @param seq_X The sequence X with no empty caracters
- * @param n Length of the seq_X
- * @param seq_Y The sequence Y with no empty caracters
- * @param m Length of the seq_Y
- * @return The distance between the two sequences
- */
+void *start_explore(void *arg);
+void *start_renderer(void *arg);
+
 int levenshtein_distance(char *seq_X, int n, char *seq_Y, int m);
-
-/**
- * @brief Recursively go through all the sub-dir
- *
- * @param path The path of the tree's root
- */
 void list_content(const char *path);
+void selector(int *selections, int idx);
 
-/**
- * @brief Manage the selector in the terminal
- */
+void print_menu(WINDOW *menuWin, int highlight, int selections[]);
 void renderer();
 
 #endif // !MY_FZF_H

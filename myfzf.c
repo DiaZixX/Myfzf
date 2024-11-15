@@ -1,29 +1,42 @@
 #include "myfzf.h"
+#include <ncurses.h>
 #include <pthread.h>
 #include <string.h>
 
 char *targetFile;
 int nChoices = 0;
-OrdChoice choices[MAX_CHOICES]; // Garde les différents choix qu'on trouve
+OrdChoice choices[MAX_CHOICES]; // Keeps the choices the program found ordered
+                                // by score (levenshtein distance)
 
+/**
+ * @brief Swap two array using their pointers
+ *
+ * @param tab1 First array
+ * @param tab2 Second array
+ */
 void swap_tab(int **tab1, int **tab2) {
     int *buffer = *tab1;
     *tab1 = *tab2;
     *tab2 = buffer;
 }
 
-void print_choices() {
-    for (int i = 0; i < nChoices; i++) {
-        printf("%s, %i\n", choices[i].name, choices[i].score);
-    }
-}
-
+/**
+ * @brief Initialise they array of choices by setting every default score to
+ * INT32_MAX
+ */
 void init_choices() {
     for (int i = 0; i < MAX_CHOICES; i++) {
         choices[i].score = INT32_MAX;
     }
 }
 
+/**
+ * @brief Insert a new filepath and its score in the choices. Manage the array
+ * as a priority queue.
+ *
+ * @param score The levenshtein distance
+ * @param name The filepath
+ */
 void insert_choice(int score, char *name) {
     OrdChoice temp;
     int i;
@@ -49,6 +62,11 @@ void insert_choice(int score, char *name) {
     }
 }
 
+/**
+ * @brief Starting routine for the exploration thread
+ *
+ * @param arg The initial path of the tree's root
+ */
 void *start_explore(void *arg) {
     const char *initPath = (char *)arg;
 
@@ -58,12 +76,28 @@ void *start_explore(void *arg) {
     pthread_exit(EXIT_SUCCESS);
 }
 
+/**
+ * @brief Starting routine for the renderer thread
+ *
+ * @param arg Don't require arguments
+ */
 void *start_renderer(void *arg) {
     renderer();
 
     pthread_exit(EXIT_SUCCESS);
 }
 
+/**
+ * @brief Calculate the levenshtein's distance between the two sequences. The
+ * score is depends on three constants : INSERTION_COST, SUBSITUTION_COST and
+ * ERASE_COST.
+ *
+ * @param seq_X The first sequence of characters
+ * @param n The length of sequence X
+ * @param seq_Y The second sequence of characters
+ * @param m The length of sequence Y
+ * @return The levenshtein's distance between X and Y
+ */
 int levenshtein_distance(char *seq_X, int n, char *seq_Y, int m) {
     int *previous_row = (int *)calloc(m + 1, sizeof(int));
     int *current_row = (int *)calloc(m + 1, sizeof(int));
@@ -91,6 +125,11 @@ int levenshtein_distance(char *seq_X, int n, char *seq_Y, int m) {
     return res;
 }
 
+/**
+ * @brief Explore recursively the directory tree
+ *
+ * @param path The current path explored
+ */
 void list_content(const char *path) {
     struct dirent *entry;
     DIR *directory = opendir(path);
@@ -126,8 +165,6 @@ void list_content(const char *path) {
                 }
             } else {
                 continue;
-                // perror("Not a directory or a file");
-                // exit(EXIT_FAILURE);
             }
         }
     }
@@ -135,11 +172,24 @@ void list_content(const char *path) {
     closedir(directory);
 }
 
+/**
+ * @brief Set the cell at index idx to true and set all the others to false
+ *
+ * @param selections The array keeping the current selection
+ * @param idx The index to put on true value
+ */
 void selector(int *selections, int idx) {
     for (int i = 0; i < MAX_CHOICES; i++)
         selections[i] = (i == idx) ? 1 : 0;
 }
 
+/**
+ * @brief Render the selection menu in the terminal
+ *
+ * @param menuWin The current window
+ * @param highlight The line selected to highlight
+ * @param selections The array of selection
+ */
 void print_menu(WINDOW *menuWin, int highlight, int selections[]) {
     int x, y, i;
     x = 2;
@@ -160,6 +210,9 @@ void print_menu(WINDOW *menuWin, int highlight, int selections[]) {
     wrefresh(menuWin);
 }
 
+/**
+ * @brief Initialise the window in the terminal and manage user's key input
+ */
 void renderer() {
     WINDOW *menuWin;
     int highlight = 1;
@@ -177,6 +230,7 @@ void renderer() {
 
     menuWin = newwin(40, 80, starty, startx);
     keypad(menuWin, TRUE);
+    nodelay(menuWin, TRUE); // Active le mode non-bloquant
     mvprintw(0, 81,
              "Use ARROWS to navigate, Use SPACE to select,"
              "Use ENTER to confirm");
