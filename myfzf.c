@@ -1,5 +1,6 @@
 #include "myfzf.h"
 #include <pthread.h>
+#include <string.h>
 
 char *targetFile;
 int nChoices = 0;
@@ -11,11 +12,47 @@ void swap_tab(int **tab1, int **tab2) {
     *tab2 = buffer;
 }
 
-void insert_choice(int score, char *name) { return; }
+void print_choices() {
+    for (int i = 0; i < nChoices; i++) {
+        printf("%s, %i\n", choices[i].name, choices[i].score);
+    }
+}
+
+void init_choices() {
+    for (int i = 0; i < MAX_CHOICES; i++) {
+        choices[i].score = INT32_MAX;
+    }
+}
+
+void insert_choice(int score, char *name) {
+    OrdChoice temp;
+    int i;
+    if (nChoices < MAX_CHOICES) {
+        nChoices++;
+    }
+    for (i = 0; i < nChoices; i++) {
+        if (choices[i].score > score) {
+            temp = choices[i];
+            choices[i].score = score;
+            strcpy(choices[i].name, name);
+            break;
+        }
+    }
+    for (i++; i < nChoices; i++) {
+        if (choices[i].score > temp.score) {
+            OrdChoice buffer = temp;
+            temp = choices[i];
+            choices[i] = buffer;
+        } else {
+            break;
+        }
+    }
+}
 
 void *start_explore(void *arg) {
     const char *initPath = (char *)arg;
 
+    init_choices();
     list_content(initPath);
 
     pthread_exit(EXIT_SUCCESS);
@@ -88,8 +125,9 @@ void list_content(const char *path) {
                     insert_choice(score, complete_path);
                 }
             } else {
-                perror("Not a directory or a file");
-                exit(EXIT_FAILURE);
+                continue;
+                // perror("Not a directory or a file");
+                // exit(EXIT_FAILURE);
             }
         }
     }
@@ -194,8 +232,8 @@ int main(int argc, char *argv[]) {
     char *arg;
 
     if (argc != 3) {
-        perror("Nombre d'arguments invalide. Format : ./myfzf <root_dir> "
-               "<filename>");
+        perror("Nombre d'arguments invalide. Format : ./myfzf <filename> "
+               "<root_dir>");
         return EXIT_FAILURE;
     }
 
@@ -204,6 +242,9 @@ int main(int argc, char *argv[]) {
 
     pthread_create(&thread_explore, NULL, start_explore, (void *)arg);
     pthread_create(&thread_renderer, NULL, start_renderer, NULL);
+
+    pthread_join(thread_explore, NULL);
+    pthread_join(thread_renderer, NULL);
 
     return EXIT_SUCCESS;
 }

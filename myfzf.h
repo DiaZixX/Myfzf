@@ -12,11 +12,11 @@
 #include <sys/stat.h>
 
 #define MAX_LENGTH_PATH 1024
-#define SUBSITUTION_COST 3
-#define ERASE_COST 1
-#define INSERTION_COST 1
+#define SUBSITUTION_COST 2
+#define ERASE_COST 3
+#define INSERTION_COST 3
 
-#define ACCEPT_SCORE 15
+#define ACCEPT_SCORE 5
 
 #define MAX_CHOICES 15
 
